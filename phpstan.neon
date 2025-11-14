@@ -1,0 +1,43 @@
+parameters:
+  level: 8
+  paths:
+    - db_wipe.module
+    - src
+    - modules
+    - tests
+  excludePaths:
+    - tests/fixtures
+    - */vendor/*
+  bootstrapFiles:
+    - phpstan-bootstrap.php
+  scanFiles:
+    - db_wipe.module
+    - modules/*/db_wipe_*.module
+  scanDirectories:
+    - /var/www/html/web/core/modules
+    - /var/www/html/web/core/lib
+  drupal:
+    drupal_root: /var/www/html/web
+    entityTypeStorageMapping:
+      node: Drupal\node\NodeStorage
+      user: Drupal\user\UserStorage
+      taxonomy_term: Drupal\taxonomy\TermStorage
+      media: Drupal\media\MediaStorage
+      file: Drupal\file\FileStorage
+  ignoreErrors:
+    # Ignore dynamic service loading in Drupal
+    - '#Service "[^"]+" is not registered in the container#'
+    # Ignore Drupal's magic methods
+    - '#Call to an undefined method Drupal\\Core\\Entity\\EntityInterface::#'
+    # Ignore test-specific issues
+    -
+      message: '#PHPDoc tag @var#'
+      path: tests/*
+  checkMissingIterableValueType: false
+  checkGenericClassInNonGenericObjectType: false
+  reportUnmatchedIgnoredErrors: false
+  treatPhpDocTypesAsCertain: false
+
+includes:
+  - vendor/mglaman/phpstan-drupal/extension.neon
+  - vendor/phpstan/phpstan-deprecation-rules/rules.neon

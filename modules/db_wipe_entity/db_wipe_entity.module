@@ -1,0 +1,178 @@
+<?php
+
+/**
+ * @file
+ * DB Wipe Entity module file.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function db_wipe_entity_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.db_wipe_entity':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The DB Wipe Entity module provides entity deletion functionality using Drupal\'s Entity API. This ensures all entity hooks, events, and reference handling are properly executed during deletion.') . '</p>';
+      $output .= '<p class="messages messages--warning">' . t('<strong>⚠️ WARNING:</strong> Deletion is permanent and cannot be undone. Always backup your database first.') . '</p>';
+
+      $output .= '<h3>' . t('When to Use This Module') . '</h3>';
+      $output .= '<p>' . t('Use db_wipe_entity when you need to:') . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Delete production content (nodes, users, media, taxonomy terms)') . '</li>';
+      $output .= '<li>' . t('Ensure all entity hooks and events are fired') . '</li>';
+      $output .= '<li>' . t('Maintain data integrity and reference handling') . '</li>';
+      $output .= '<li>' . t('Delete entities with complex relationships') . '</li>';
+      $output .= '</ul>';
+      $output .= '<p>' . t('<strong>Note:</strong> This method is slower than db_wipe_db because it uses proper entity deletion. For temporary data like logs or cache, consider using db_wipe_db instead.') . '</p>';
+
+      $output .= '<h3>' . t('Available Drush Commands') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt><code>drush db:wipe-entities [entity_type]</code></dt>';
+      $output .= '<dd>' . t('Delete entities of any type (node, user, taxonomy_term, media, file, comment, etc.)') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Command Options') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt><code>--bundle</code></dt>';
+      $output .= '<dd>' . t('Filter by bundle/type (e.g., article, page, tags, image). Only entities of this bundle will be deleted.') . '</dd>';
+      $output .= '<dt><code>--exclude-ids</code></dt>';
+      $output .= '<dd>' . t('Comma-separated list of entity IDs to protect from deletion (e.g., 1,2,3)') . '</dd>';
+      $output .= '<dt><code>--include-ids</code></dt>';
+      $output .= '<dd>' . t('Comma-separated list of specific entity IDs to delete. Only these entities will be deleted.') . '</dd>';
+      $output .= '<dt><code>--dry-run</code></dt>';
+      $output .= '<dd>' . t('Preview entities that would be deleted without actually deleting them. <strong>Always use this first!</strong>') . '</dd>';
+      $output .= '<dt><code>--no-batch</code></dt>';
+      $output .= '<dd>' . t('Disable batch processing. Use for small deletions only (< 50 entities).') . '</dd>';
+      $output .= '<dt><code>--yes</code></dt>';
+      $output .= '<dd>' . t('Skip confirmation prompt. <strong>Dangerous!</strong> Use with extreme caution.') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Usage Examples') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt><code>drush db:wipe-entities node --dry-run</code></dt>';
+      $output .= '<dd>' . t('Preview all nodes that would be deleted (safe, no changes made)') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-entities node --bundle=article --dry-run</code></dt>';
+      $output .= '<dd>' . t('Preview all article nodes that would be deleted') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-entities node --bundle=article</code></dt>';
+      $output .= '<dd>' . t('Delete all article nodes (with confirmation prompt)') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-entities node --exclude-ids=1,2,3</code></dt>';
+      $output .= '<dd>' . t('Delete all nodes except IDs 1, 2, and 3') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-entities node --include-ids=100,101,102</code></dt>';
+      $output .= '<dd>' . t('Delete only nodes with IDs 100, 101, and 102') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-entities taxonomy_term --bundle=tags</code></dt>';
+      $output .= '<dd>' . t('Delete all taxonomy terms in the "tags" vocabulary') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-entities user --exclude-ids=1</code></dt>';
+      $output .= '<dd>' . t('Delete all users except user ID 1 (admin is always protected)') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-entities media --bundle=image</code></dt>';
+      $output .= '<dd>' . t('Delete all image media entities') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-entities commerce_order --yes</code></dt>';
+      $output .= '<dd>' . t('Delete all commerce orders without confirmation (if Commerce is installed)') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Safety Features') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li><strong>' . t('🛡️ User ID 1 Protection:') . '</strong> ' . t('User ID 1 (admin) is automatically protected and will NEVER be deleted, even if included in --include-ids') . '</li>';
+      $output .= '<li><strong>' . t('Batch Processing:') . '</strong> ' . t('Large deletions are processed in batches of 50 entities to prevent timeouts and memory issues') . '</li>';
+      $output .= '<li><strong>' . t('Dry-run Mode:') . '</strong> ' . t('Preview exactly what will be deleted before committing to the operation') . '</li>';
+      $output .= '<li><strong>' . t('Confirmation Prompts:') . '</strong> ' . t('Interactive confirmation with entity counts and details (unless --yes is used)') . '</li>';
+      $output .= '<li><strong>' . t('Event System:') . '</strong> ' . t('Other modules can subscribe to events to prevent operations or perform cleanup') . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h3>' . t('Events') . '</h3>';
+      $output .= '<p>' . t('This module dispatches events that allow other modules to react to entity deletion:') . '</p>';
+      $output .= '<dl>';
+      $output .= '<dt><code>EntityWipeEvents::BEFORE_WIPE</code></dt>';
+      $output .= '<dd>' . t('Dispatched before deletion starts. Event subscribers can:') . '</dd>';
+      $output .= '<dd><ul>';
+      $output .= '<li>' . t('Prevent the entire operation by calling <code>$event->preventWipe()</code>') . '</li>';
+      $output .= '<li>' . t('Modify the entity query to change what gets deleted') . '</li>';
+      $output .= '<li>' . t('Log the operation for audit trails') . '</li>';
+      $output .= '<li>' . t('Access: entity type, bundle, count, options via <code>$event->getEntityType()</code>, etc.') . '</li>';
+      $output .= '</ul></dd>';
+      $output .= '<dt><code>EntityWipeEvents::AFTER_WIPE</code></dt>';
+      $output .= '<dd>' . t('Dispatched after deletion completes. Useful for:') . '</dd>';
+      $output .= '<dd><ul>';
+      $output .= '<li>' . t('Cleanup operations (deleting orphaned files, clearing caches)') . '</li>';
+      $output .= '<li>' . t('Logging successful deletions') . '</li>';
+      $output .= '<li>' . t('Sending notifications') . '</li>';
+      $output .= '<li>' . t('Access: entity type, bundle, deleted count via <code>$event->getDeletedCount()</code>') . '</li>';
+      $output .= '</ul></dd>';
+      $output .= '<dt><code>EntityWipeEvents::BATCH_PROCESS</code></dt>';
+      $output .= '<dd>' . t('Dispatched during each batch operation. Allows:') . '</dd>';
+      $output .= '<dd><ul>';
+      $output .= '<li>' . t('Tracking deletion progress') . '</li>';
+      $output .= '<li>' . t('Performing per-batch cleanup') . '</li>';
+      $output .= '<li>' . t('Implementing custom progress reporting') . '</li>';
+      $output .= '<li>' . t('Access: current batch, total batches, entity IDs being processed') . '</li>';
+      $output .= '</ul></dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Event Subscriber Example') . '</h3>';
+      $output .= '<p>' . t('To create an event subscriber:') . '</p>';
+      $output .= '<ol>';
+      $output .= '<li>' . t('Create a class in your module: <code>src/EventSubscriber/MyWipeSubscriber.php</code>') . '</li>';
+      $output .= '<li>' . t('Implement <code>EventSubscriberInterface</code>') . '</li>';
+      $output .= '<li>' . t('Subscribe to events in <code>getSubscribedEvents()</code>') . '</li>';
+      $output .= '<li>' . t('Register the service in <code>mymodule.services.yml</code> with tag: <code>event_subscriber</code>') . '</li>';
+      $output .= '</ol>';
+      $output .= '<p>' . t('See <code>tests/modules/db_wipe_test/src/EventSubscriber/TestEventSubscriber.php</code> for a complete working example.') . '</p>';
+
+      $output .= '<h3>' . t('Performance Considerations') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('<strong>Batch size:</strong> Default is 50 entities per batch. Larger batches = faster but more memory usage.') . '</li>';
+      $output .= '<li>' . t('<strong>Entity hooks:</strong> Each entity deletion fires hooks, which can be slow for thousands of entities.') . '</li>';
+      $output .= '<li>' . t('<strong>References:</strong> Entity API handles reference cleanup, which adds processing time.') . '</li>';
+      $output .= '<li>' . t('<strong>For logs/cache:</strong> If you need to delete thousands of log entries or cache items, use db_wipe_db module instead for 10-100x faster performance.') . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h3>' . t('Best Practices') . '</h3>';
+      $output .= '<ol>';
+      $output .= '<li><strong>' . t('ALWAYS backup your database before any deletion') . '</strong></li>';
+      $output .= '<li><strong>' . t('ALWAYS use --dry-run first to preview what will be deleted') . '</strong></li>';
+      $output .= '<li>' . t('Test on development/staging environments first') . '</li>';
+      $output .= '<li>' . t('Use --exclude-ids to protect critical entities') . '</li>';
+      $output .= '<li>' . t('Use --bundle to target specific content types') . '</li>';
+      $output .= '<li>' . t('Never use --yes without reviewing the dry-run output first') . '</li>';
+      $output .= '<li>' . t('For large deletions (> 1000 entities), run during off-peak hours') . '</li>';
+      $output .= '<li>' . t('Monitor memory usage and PHP timeouts for very large operations') . '</li>';
+      $output .= '<li>' . t('Subscribe to events for audit logging and compliance requirements') . '</li>';
+      $output .= '</ol>';
+
+      $output .= '<h3>' . t('Comparison with db_wipe_db') . '</h3>';
+      $output .= '<table>';
+      $output .= '<thead><tr><th></th><th>db_wipe_entity</th><th>db_wipe_db</th></tr></thead>';
+      $output .= '<tbody>';
+      $output .= '<tr><td><strong>Method</strong></td><td>Entity API</td><td>Direct SQL</td></tr>';
+      $output .= '<tr><td><strong>Speed</strong></td><td>Slower</td><td>Very Fast</td></tr>';
+      $output .= '<tr><td><strong>Safety</strong></td><td>High</td><td>Medium</td></tr>';
+      $output .= '<tr><td><strong>Entity Hooks</strong></td><td>Yes</td><td>No</td></tr>';
+      $output .= '<tr><td><strong>Reference Cleanup</strong></td><td>Automatic</td><td>Manual</td></tr>';
+      $output .= '<tr><td><strong>Batch Processing</strong></td><td>Yes</td><td>No</td></tr>';
+      $output .= '<tr><td><strong>Use Case</strong></td><td>Production content</td><td>Logs, cache, temp data</td></tr>';
+      $output .= '</tbody>';
+      $output .= '</table>';
+
+      $output .= '<h3>' . t('Troubleshooting') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Memory errors during large deletions') . '</dt>';
+      $output .= '<dd>' . t('Batch processing is automatic for > 50 entities. If still getting errors, increase PHP memory limit in php.ini') . '</dd>';
+      $output .= '<dt>' . t('Timeout errors') . '</dt>';
+      $output .= '<dd>' . t('Increase PHP max_execution_time or process in smaller batches using --include-ids') . '</dd>';
+      $output .= '<dt>' . t('User ID 1 still exists after deletion attempt') . '</dt>';
+      $output .= '<dd>' . t('This is intentional! User ID 1 is always protected and cannot be deleted.') . '</dd>';
+      $output .= '<dt>' . t('Events not firing') . '</dt>';
+      $output .= '<dd>' . t('Clear cache after creating event subscribers: <code>drush cr</code>') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Related Modules') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('<a href=":url">DB Wipe (Core)</a> - Plugin system architecture', [':url' => '/admin/help/db_wipe']) . '</li>';
+      $output .= '<li>' . t('<a href=":url">DB Wipe Database</a> - Fast table truncation', [':url' => '/admin/help/db_wipe_db']) . '</li>';
+      $output .= '<li>' . t('<a href=":url">DB Wipe UI</a> - Web interface for deletion', [':url' => '/admin/help/db_wipe_ui']) . '</li>';
+      $output .= '</ul>';
+
+      return $output;
+  }
+}

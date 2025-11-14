@@ -1,0 +1,24 @@
+deletion_mode:
+  default_method: 'entity_api'
+  allow_sql_mode: true
+  sql_mode_requires_permission: true
+  auto_mode_threshold: 1000
+  warn_before_sql: true
+  sql_batch_size: 1000
+  disable_foreign_keys_on_truncate: true
+protection:
+  enabled: true
+  protected_users:
+    - 1
+  protect_uid_one: true
+  protected_roles:
+    - administrator
+  protected_entity_types: []
+  custom_protection_rules: []
+logging:
+  enabled: true
+  log_level: 'notice'
+  log_protected_attempts: true
+batch:
+  batch_size: 50
+  memory_limit: '256M'

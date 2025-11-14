@@ -1,0 +1,85 @@
+db_wipe_db.settings:
+  type: config_object
+  label: 'DB Wipe Database settings'
+  mapping:
+    tables:
+      type: mapping
+      label: 'Table management settings'
+      mapping:
+        mode:
+          type: string
+          label: 'Table selection mode'
+          constraints:
+            Choice: ['whitelist', 'custom', 'all_with_prefix']
+        safe_tables:
+          type: sequence
+          label: 'Safe tables (whitelist mode)'
+          sequence:
+            type: string
+            label: 'Table name'
+        safe_prefixes:
+          type: sequence
+          label: 'Safe table prefixes'
+          sequence:
+            type: string
+            label: 'Table prefix'
+        custom_tables:
+          type: sequence
+          label: 'Custom tables to allow'
+          sequence:
+            type: string
+            label: 'Table name'
+        excluded_tables:
+          type: sequence
+          label: 'Tables to always exclude'
+          sequence:
+            type: string
+            label: 'Table name'
+        protected_tables:
+          type: sequence
+          label: 'Protected tables (never truncate)'
+          sequence:
+            type: string
+            label: 'Table name'
+    safety:
+      type: mapping
+      label: 'Safety settings'
+      mapping:
+        require_confirmation:
+          type: boolean
+          label: 'Require confirmation for truncate operations'
+        require_backup_confirmation:
+          type: boolean
+          label: 'Ask user to confirm backup exists'
+        max_rows_without_warning:
+          type: integer
+          label: 'Maximum rows to truncate without additional warning'
+        allow_system_tables:
+          type: boolean
+          label: 'Allow truncating system tables'
+    logging:
+      type: mapping
+      label: 'Logging settings'
+      mapping:
+        enabled:
+          type: boolean
+          label: 'Enable logging of truncate operations'
+        log_level:
+          type: string
+          label: 'Log level'
+        log_row_counts:
+          type: boolean
+          label: 'Log row counts before truncation'
+    performance:
+      type: mapping
+      label: 'Performance settings'
+      mapping:
+        use_transaction:
+          type: boolean
+          label: 'Use database transaction for safety'
+        batch_operations:
+          type: boolean
+          label: 'Use batch operations for multiple tables'
+        disable_foreign_key_checks:
+          type: boolean
+          label: 'Temporarily disable foreign key checks during truncation'

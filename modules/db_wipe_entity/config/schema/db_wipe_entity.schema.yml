@@ -1,0 +1,104 @@
+db_wipe_entity.settings:
+  type: config_object
+  label: 'DB Wipe Entity settings'
+  mapping:
+    deletion_mode:
+      type: mapping
+      label: 'Deletion mode settings'
+      mapping:
+        default_method:
+          type: string
+          label: 'Default deletion method'
+          constraints:
+            Choice: ['entity_api', 'sql_direct', 'auto']
+        allow_sql_mode:
+          type: boolean
+          label: 'Allow direct SQL deletion mode'
+        sql_mode_requires_permission:
+          type: boolean
+          label: 'Require special permission for SQL mode'
+        auto_mode_threshold:
+          type: integer
+          label: 'Entity count threshold for auto mode to use SQL'
+        warn_before_sql:
+          type: boolean
+          label: 'Show warning before SQL operations'
+        sql_batch_size:
+          type: integer
+          label: 'Batch size for SQL deletion'
+        disable_foreign_keys_on_truncate:
+          type: boolean
+          label: 'Temporarily disable foreign key checks during truncate'
+    protection:
+      type: mapping
+      label: 'Entity protection settings'
+      mapping:
+        enabled:
+          type: boolean
+          label: 'Enable entity protection'
+        protected_users:
+          type: sequence
+          label: 'Protected user IDs'
+          sequence:
+            type: integer
+            label: 'User ID'
+        protect_uid_one:
+          type: boolean
+          label: 'Always protect User ID 1'
+        protected_roles:
+          type: sequence
+          label: 'Protected user roles'
+          sequence:
+            type: string
+            label: 'Role ID'
+        protected_entity_types:
+          type: sequence
+          label: 'Entity types that cannot be wiped'
+          sequence:
+            type: string
+            label: 'Entity type ID'
+        custom_protection_rules:
+          type: sequence
+          label: 'Custom protection rules'
+          sequence:
+            type: mapping
+            label: 'Protection rule'
+            mapping:
+              entity_type:
+                type: string
+                label: 'Entity type'
+              bundle:
+                type: string
+                label: 'Bundle'
+              field:
+                type: string
+                label: 'Field name'
+              value:
+                type: string
+                label: 'Protected value'
+              operator:
+                type: string
+                label: 'Comparison operator'
+    logging:
+      type: mapping
+      label: 'Logging settings'
+      mapping:
+        enabled:
+          type: boolean
+          label: 'Enable logging of wipe operations'
+        log_level:
+          type: string
+          label: 'Log level'
+        log_protected_attempts:
+          type: boolean
+          label: 'Log attempts to delete protected entities'
+    batch:
+      type: mapping
+      label: 'Batch processing settings'
+      mapping:
+        batch_size:
+          type: integer
+          label: 'Number of entities to process per batch'
+        memory_limit:
+          type: string
+          label: 'PHP memory limit for batch operations'

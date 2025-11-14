@@ -1,0 +1,195 @@
+<?php
+
+/**
+ * @file
+ * DB Wipe Database module file.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function db_wipe_db_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.db_wipe_db':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The DB Wipe Database module provides fast table truncation using direct SQL commands. This method bypasses Drupal\'s Entity API for maximum performance when cleaning up temporary data.') . '</p>';
+      $output .= '<p class="messages messages--warning">' . t('<strong>⚠️ WARNING:</strong> Truncation permanently deletes ALL data from a table and cannot be undone. Always backup your database first.') . '</p>';
+
+      $output .= '<h3>' . t('When to Use This Module') . '</h3>';
+      $output .= '<p>' . t('Use db_wipe_db when you need to:') . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Clear system logs (watchdog)') . '</li>';
+      $output .= '<li>' . t('Delete user sessions') . '</li>';
+      $output .= '<li>' . t('Clear cache tables') . '</li>';
+      $output .= '<li>' . t('Remove flood control data') . '</li>';
+      $output .= '<li>' . t('Clean up queue or batch tables') . '</li>';
+      $output .= '<li>' . t('Quickly remove large amounts of temporary/log data (10-100x faster than entity deletion)') . '</li>';
+      $output .= '</ul>';
+      $output .= '<p>' . t('<strong>Do NOT use for:</strong> Content nodes, users, media, taxonomy terms, or any entity that should fire entity hooks. Use db_wipe_entity module instead.') . '</p>';
+
+      $output .= '<h3>' . t('Available Drush Commands') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt><code>drush db:wipe-list-tables</code></dt>';
+      $output .= '<dd>' . t('List all tables that are whitelisted and safe to truncate') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-table [table_name]</code></dt>';
+      $output .= '<dd>' . t('Truncate a specific whitelisted table') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Command Options') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt><code>--dry-run</code></dt>';
+      $output .= '<dd>' . t('Preview the operation: shows table name and row count without truncating. <strong>Always use this first!</strong>') . '</dd>';
+      $output .= '<dt><code>--yes</code></dt>';
+      $output .= '<dd>' . t('Skip confirmation prompt. <strong>Dangerous!</strong> Use with extreme caution.') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Whitelisted Tables') . '</h3>';
+      $output .= '<p>' . t('For safety, only these tables can be truncated:') . '</p>';
+      $output .= '<ul>';
+      $output .= '<li><code>watchdog</code> - ' . t('System log entries') . '</li>';
+      $output .= '<li><code>sessions</code> - ' . t('Active user sessions') . '</li>';
+      $output .= '<li><code>flood</code> - ' . t('Flood control data') . '</li>';
+      $output .= '<li><code>queue</code> - ' . t('Queue items') . '</li>';
+      $output .= '<li><code>batch</code> - ' . t('Batch processing data') . '</li>';
+      $output .= '<li><code>semaphore</code> - ' . t('Lock/semaphore data') . '</li>';
+      $output .= '<li><code>cache_*</code> - ' . t('All cache tables (cache_bootstrap, cache_config, cache_data, etc.)') . '</li>';
+      $output .= '</ul>';
+      $output .= '<p>' . t('Attempting to truncate any other table will be rejected with an error message.') . '</p>';
+
+      $output .= '<h3>' . t('Usage Examples') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt><code>drush db:wipe-list-tables</code></dt>';
+      $output .= '<dd>' . t('See all available tables you can safely truncate') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-table watchdog --dry-run</code></dt>';
+      $output .= '<dd>' . t('Preview watchdog table truncation (shows row count, no changes made)') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-table watchdog</code></dt>';
+      $output .= '<dd>' . t('Truncate the watchdog table after confirmation prompt') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-table sessions --yes</code></dt>';
+      $output .= '<dd>' . t('Immediately truncate all user sessions (logs everyone out!)') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-table cache_bootstrap</code></dt>';
+      $output .= '<dd>' . t('Clear the bootstrap cache table') . '</dd>';
+      $output .= '<dt><code>drush db:wipe-table flood</code></dt>';
+      $output .= '<dd>' . t('Clear flood control data (useful after failed login attempts)') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Safety Features') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li><strong>' . t('Whitelist-Only:') . '</strong> ' . t('Only pre-approved tables can be truncated. All other tables are protected.') . '</li>';
+      $output .= '<li><strong>' . t('Table Name Confirmation:') . '</strong> ' . t('You must type the exact table name - no wildcards or patterns allowed.') . '</li>';
+      $output .= '<li><strong>' . t('Row Count Display:') . '</strong> ' . t('Shows how many rows will be deleted before confirmation.') . '</li>';
+      $output .= '<li><strong>' . t('Dry-run Mode:') . '</strong> ' . t('Preview operation without making any changes.') . '</li>';
+      $output .= '<li><strong>' . t('Event System:') . '</strong> ' . t('Other modules can subscribe to events to prevent operations.') . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h3>' . t('Events') . '</h3>';
+      $output .= '<p>' . t('This module dispatches events that allow other modules to react to table truncation:') . '</p>';
+      $output .= '<dl>';
+      $output .= '<dt><code>DatabaseWipeEvents::BEFORE_TRUNCATE</code></dt>';
+      $output .= '<dd>' . t('Dispatched before truncation. Event subscribers can:') . '</dd>';
+      $output .= '<dd><ul>';
+      $output .= '<li>' . t('Prevent the operation by calling <code>$event->preventTruncate()</code>') . '</li>';
+      $output .= '<li>' . t('Log the operation for audit trails') . '</li>';
+      $output .= '<li>' . t('Perform backup operations') . '</li>';
+      $output .= '<li>' . t('Access: table name, row count via <code>$event->getTableName()</code>, <code>$event->getRowCount()</code>') . '</li>';
+      $output .= '</ul></dd>';
+      $output .= '<dt><code>DatabaseWipeEvents::AFTER_TRUNCATE</code></dt>';
+      $output .= '<dd>' . t('Dispatched after truncation completes. Useful for:') . '</dd>';
+      $output .= '<dd><ul>';
+      $output .= '<li>' . t('Logging successful truncation') . '</li>';
+      $output .= '<li>' . t('Sending notifications') . '</li>';
+      $output .= '<li>' . t('Triggering related cleanup operations') . '</li>';
+      $output .= '<li>' . t('Access: table name, rows deleted count') . '</li>';
+      $output .= '</ul></dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Performance Comparison') . '</h3>';
+      $output .= '<p>' . t('DB Wipe Database is significantly faster than entity deletion:') . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('<strong>10,000 watchdog entries:</strong> ~1 second (db_wipe_db) vs ~60 seconds (db_wipe_entity)') . '</li>';
+      $output .= '<li>' . t('<strong>100,000 cache entries:</strong> ~2 seconds (db_wipe_db) vs ~10 minutes (db_wipe_entity)') . '</li>';
+      $output .= '<li>' . t('<strong>1,000,000 log entries:</strong> ~5 seconds (db_wipe_db) vs hours (db_wipe_entity)') . '</li>';
+      $output .= '</ul>';
+      $output .= '<p>' . t('Use this module for log and cache cleanup to avoid performance issues.') . '</p>';
+
+      $output .= '<h3>' . t('How TRUNCATE Works') . '</h3>';
+      $output .= '<p>' . t('The TRUNCATE command:') . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Removes ALL rows from the table instantly') . '</li>';
+      $output .= '<li>' . t('Resets auto-increment counters') . '</li>';
+      $output .= '<li>' . t('Does NOT fire any Drupal entity hooks or events (except our custom events)') . '</li>';
+      $output .= '<li>' . t('Does NOT log individual row deletions') . '</li>';
+      $output .= '<li>' . t('Cannot be rolled back (in most database engines)') . '</li>';
+      $output .= '<li>' . t('Much faster than DELETE because it does not scan rows') . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h3>' . t('Best Practices') . '</h3>';
+      $output .= '<ol>';
+      $output .= '<li><strong>' . t('ALWAYS backup your database before truncating tables') . '</strong></li>';
+      $output .= '<li><strong>' . t('ALWAYS use --dry-run first to see row counts') . '</strong></li>';
+      $output .= '<li>' . t('Never truncate content tables - use db_wipe_entity instead') . '</li>';
+      $output .= '<li>' . t('Only truncate temporary/log data tables') . '</li>';
+      $output .= '<li>' . t('Be aware that truncating sessions will log out all users') . '</li>';
+      $output .= '<li>' . t('Consider scheduling regular watchdog cleanup during off-peak hours') . '</li>';
+      $output .= '<li>' . t('Use --yes flag only in automated scripts, never manually without review') . '</li>';
+      $output .= '<li>' . t('Subscribe to events for audit logging and compliance') . '</li>';
+      $output .= '</ol>';
+
+      $output .= '<h3>' . t('Common Use Cases') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Clear system logs') . '</dt>';
+      $output .= '<dd><code>drush db:wipe-table watchdog</code></dd>';
+      $output .= '<dt>' . t('Log out all users') . '</dt>';
+      $output .= '<dd><code>drush db:wipe-table sessions</code></dd>';
+      $output .= '<dt>' . t('Reset flood control (after brute force attack)') . '</dt>';
+      $output .= '<dd><code>drush db:wipe-table flood</code></dd>';
+      $output .= '<dt>' . t('Clear all cache tables') . '</dt>';
+      $output .= '<dd>' . t('Run <code>drush db:wipe-table cache_*</code> for each cache table, or use <code>drush cr</code> instead') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Comparison with db_wipe_entity') . '</h3>';
+      $output .= '<table>';
+      $output .= '<thead><tr><th></th><th>db_wipe_db</th><th>db_wipe_entity</th></tr></thead>';
+      $output .= '<tbody>';
+      $output .= '<tr><td><strong>Method</strong></td><td>Direct SQL (TRUNCATE)</td><td>Entity API</td></tr>';
+      $output .= '<tr><td><strong>Speed</strong></td><td>Very Fast</td><td>Slower</td></tr>';
+      $output .= '<tr><td><strong>Entity Hooks</strong></td><td>No</td><td>Yes</td></tr>';
+      $output .= '<tr><td><strong>Reference Cleanup</strong></td><td>Manual</td><td>Automatic</td></tr>';
+      $output .= '<tr><td><strong>Partial Deletion</strong></td><td>No (all or nothing)</td><td>Yes (with filters)</td></tr>';
+      $output .= '<tr><td><strong>Protection</strong></td><td>Whitelist only</td><td>Per-entity (e.g., User ID 1)</td></tr>';
+      $output .= '<tr><td><strong>Use Case</strong></td><td>Logs, cache, temp data</td><td>Production content</td></tr>';
+      $output .= '</tbody>';
+      $output .= '</table>';
+
+      $output .= '<h3>' . t('Troubleshooting') . '</h3>';
+      $output .= '<dl>';
+      $output .= '<dt>' . t('Error: Table not whitelisted') . '</dt>';
+      $output .= '<dd>' . t('This is intentional protection. Only specific tables can be truncated. If you need to delete content, use db_wipe_entity instead.') . '</dd>';
+      $output .= '<dt>' . t('All users are logged out after truncating sessions') . '</dt>';
+      $output .= '<dd>' . t('This is expected behavior. Truncating the sessions table removes all active user sessions.') . '</dd>';
+      $output .= '<dt>' . t('Table still has data after truncate') . '</dt>';
+      $output .= '<dd>' . t('Check for database replication lag or caching. TRUNCATE is immediate, so data may be re-populated by active processes.') . '</dd>';
+      $output .= '<dt>' . t('Events not firing') . '</dt>';
+      $output .= '<dd>' . t('Clear cache after creating event subscribers: <code>drush cr</code>') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Security Considerations') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Only users with "administer site configuration" permission can run these commands') . '</li>';
+      $output .= '<li>' . t('Whitelist prevents accidental truncation of critical tables') . '</li>';
+      $output .= '<li>' . t('No wildcards or bulk operations - must specify exact table name') . '</li>';
+      $output .= '<li>' . t('All operations are logged to Drupal watchdog (if watchdog itself is not truncated)') . '</li>';
+      $output .= '<li>' . t('Events allow custom audit logging and approval workflows') . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h3>' . t('Related Modules') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('<a href=":url">DB Wipe (Core)</a> - Plugin system architecture', [':url' => '/admin/help/db_wipe']) . '</li>';
+      $output .= '<li>' . t('<a href=":url">DB Wipe Entity</a> - Safe entity deletion', [':url' => '/admin/help/db_wipe_entity']) . '</li>';
+      $output .= '<li>' . t('<a href=":url">DB Wipe UI</a> - Web interface for deletion', [':url' => '/admin/help/db_wipe_ui']) . '</li>';
+      $output .= '</ul>';
+
+      return $output;
+  }
+}

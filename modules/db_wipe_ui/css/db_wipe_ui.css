@@ -1,0 +1,51 @@
+/**
+ * Styles for DB Wipe UI module.
+ */
+
+.db-wipe-ui-form .messages--warning {
+  padding: 1em;
+  margin-bottom: 1.5em;
+  border: 3px solid #ed541d;
+  background-color: #fcf4f2;
+  font-size: 1.1em;
+}
+
+.db-wipe-ui-form .messages--error {
+  padding: 1.5em;
+  margin-bottom: 1.5em;
+  border: 4px solid #d72b3f;
+  background-color: #fcf4f2;
+}
+
+.db-wipe-ui-form .messages--error pre {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-family: monospace;
+  font-size: 0.95em;
+  line-height: 1.6;
+  color: #d72b3f;
+}
+
+.confirmation-form .form-actions .button--danger {
+  background-color: #d72b3f;
+  color: white;
+  font-weight: bold;
+  border-color: #a51b2a;
+}
+
+.confirmation-form .form-actions .button--danger:hover {
+  background-color: #a51b2a;
+  border-color: #7a1420;
+}
+
+#edit-confirmation-text {
+  font-size: 1.2em;
+  padding: 0.5em;
+  border: 2px solid #d72b3f;
+}
+
+.db-wipe-ui-form details {
+  margin-top: 1em;
+}

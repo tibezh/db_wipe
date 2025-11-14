@@ -1,0 +1,7 @@
+name: 'DB Wipe'
+type: module
+description: 'Provides a plugin system for database wipe operations. Install submodules for specific functionality.'
+core_version_requirement: ^10 || ^11
+package: 'DB Wipe'
+version: '1.0.0-dev'
+project: 'db_wipe'

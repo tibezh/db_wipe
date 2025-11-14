@@ -1,0 +1,29 @@
+services:
+  db_wipe_entity.entity_wipe:
+    class: Drupal\db_wipe_entity\Service\EntityWipeService
+    arguments: ['@entity_type.manager', '@event_dispatcher', '@messenger']
+
+  db_wipe_entity.entity_sql_wipe:
+    class: Drupal\db_wipe_entity\Service\EntitySqlWipeService
+    arguments:
+      - '@database'
+      - '@entity_type.manager'
+      - '@entity_field.manager'
+      - '@logger.factory'
+
+  # Legacy subscriber for backward compatibility
+  db_wipe_entity.user_id_one_protection_subscriber:
+    class: Drupal\db_wipe_entity\EventSubscriber\UserIdOneProtectionSubscriber
+    tags:
+      - { name: event_subscriber, priority: 50 }
+
+  # New configurable entity protection subscriber
+  db_wipe_entity.entity_protection_subscriber:
+    class: Drupal\db_wipe_entity\EventSubscriber\EntityProtectionSubscriber
+    arguments:
+      - '@config.factory'
+      - '@entity_type.manager'
+      - '@logger.factory'
+      - '@current_user'
+    tags:
+      - { name: event_subscriber, priority: 100 }

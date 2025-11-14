@@ -1,0 +1,15 @@
+administer database wipe:
+  title: 'Administer database wipe settings'
+  description: 'Configure which tables can be truncated.'
+  restrict access: true
+
+truncate safe tables:
+  title: 'Truncate safe database tables'
+  description: 'Truncate tables marked as safe (cache, logs, sessions, etc).'
+  restrict access: true
+
+truncate any table:
+  title: 'Force truncate any database table'
+  description: 'Bypass safety checks and truncate any table.'
+  restrict access: true
+  warning: 'EXTREME DANGER: This permission allows truncating critical system tables. Only for emergency use.'

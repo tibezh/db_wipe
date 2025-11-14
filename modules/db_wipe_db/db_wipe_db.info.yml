@@ -1,0 +1,9 @@
+name: 'DB Wipe Database'
+type: module
+description: 'Provides direct database table truncation for fast data removal.'
+core_version_requirement: ^10 || ^11
+package: 'DB Wipe'
+version: '1.0.0-dev'
+project: 'db_wipe'
+dependencies:
+  - db_wipe:db_wipe

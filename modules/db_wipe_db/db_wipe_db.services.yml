@@ -1,0 +1,9 @@
+services:
+  db_wipe_db.database_wipe:
+    class: Drupal\db_wipe_db\Service\DatabaseWipeService
+    arguments:
+      - '@database'
+      - '@event_dispatcher'
+      - '@messenger'
+      - '@config.factory'
+      - '@logger.factory'

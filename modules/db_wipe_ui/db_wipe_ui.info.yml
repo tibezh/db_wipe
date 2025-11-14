@@ -1,0 +1,10 @@
+name: 'DB Wipe UI'
+type: module
+description: 'Provides user interface for deleting entities from the database.'
+core_version_requirement: ^10 || ^11
+package: 'DB Wipe'
+version: '1.0.0-dev'
+project: 'db_wipe'
+dependencies:
+  - db_wipe:db_wipe
+  - db_wipe:db_wipe_entity

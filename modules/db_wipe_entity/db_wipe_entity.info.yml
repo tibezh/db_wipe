@@ -1,0 +1,9 @@
+name: 'DB Wipe Entity'
+type: module
+description: 'Provides entity deletion functionality using Drupal entity API.'
+core_version_requirement: ^10 || ^11
+package: 'DB Wipe'
+version: '1.0.0-dev'
+project: 'db_wipe'
+dependencies:
+  - db_wipe:db_wipe

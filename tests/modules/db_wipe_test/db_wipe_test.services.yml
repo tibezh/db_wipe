@@ -1,0 +1,6 @@
+services:
+  db_wipe_test.event_subscriber:
+    class: Drupal\db_wipe_test\EventSubscriber\TestEventSubscriber
+    arguments: ['@state']
+    tags:
+      - { name: event_subscriber }

@@ -1,0 +1,5 @@
+db_wipe_ui:
+  version: 1.x
+  css:
+    theme:
+      css/db_wipe_ui.css: {}

@@ -1,0 +1,15 @@
+db_wipe_ui.entity_wipe_form:
+  path: '/admin/config/development/entity-wipe'
+  defaults:
+    _form: '\Drupal\db_wipe_ui\Form\EntityWipeForm'
+    _title: 'Entity Wipe'
+  requirements:
+    _permission: 'administer entity wipe'
+
+db_wipe_ui.confirm:
+  path: '/admin/config/development/entity-wipe/confirm'
+  defaults:
+    _form: '\Drupal\db_wipe_ui\Form\EntityWipeConfirmForm'
+    _title: 'Confirm Entity Deletion'
+  requirements:
+    _permission: 'administer entity wipe'

@@ -1,0 +1,258 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+      - 'release/**'
+      - 'feature/**'
+  pull_request:
+    branches:
+      - main
+      - develop
+  schedule:
+    # Run tests every Monday at 8AM UTC to catch issues with dependencies
+    - cron: '0 8 * * 1'
+
+env:
+  COMPOSER_MEMORY_LIMIT: -1
+  SIMPLETEST_DB: mysql://drupal:drupal@127.0.0.1:3306/drupal
+  SIMPLETEST_BASE_URL: http://localhost:8888
+  BROWSERTEST_OUTPUT_DIRECTORY: '/tmp'
+  MINK_DRIVER_ARGS_WEBDRIVER: '["chrome", {"chrome": {"chromeOptions": {"args": ["--headless", "--disable-dev-shm-usage"]}}, "browserName": "chrome", "goog:chromeOptions": {"args": ["--headless", "--disable-dev-shm-usage"]}}]'
+
+jobs:
+  coding-standards:
+    name: Coding Standards
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, xml, ctype, iconv, intl, mysql, pdo_mysql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Get composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v3
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+
+      - name: Run PHP CodeSniffer
+        run: vendor/bin/phpcs
+
+      - name: Check file permissions
+        run: |
+          # Ensure no executable PHP files
+          ! find . -name "*.php" -executable -type f | grep -v vendor
+          # Ensure no executable YML files
+          ! find . -name "*.yml" -executable -type f | grep -v vendor
+
+  static-analysis:
+    name: Static Analysis (PHPStan)
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        drupal-core:
+          - '10.2.x'
+          - '10.3.x'
+          - '11.0.x'
+        php-version:
+          - '8.1'
+          - '8.2'
+          - '8.3'
+        exclude:
+          # Drupal 11 requires PHP 8.3
+          - drupal-core: '11.0.x'
+            php-version: '8.1'
+          - drupal-core: '11.0.x'
+            php-version: '8.2'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, ctype, iconv, intl, mysql, pdo_mysql, zip
+          coverage: none
+          tools: composer:v2
+
+      - name: Setup Drupal project
+        run: |
+          composer create-project drupal/recommended-project:${{ matrix.drupal-core }} drupal --no-install --no-interaction
+          cd drupal
+          composer config minimum-stability dev
+          composer config prefer-stable true
+          composer config repositories.0 path "../"
+          composer require drupal/db_wipe:* --no-update
+          composer require drupal/coder mglaman/phpstan-drupal phpstan/phpstan --dev --no-update
+          composer update --no-progress --no-interaction
+
+      - name: Run PHPStan
+        run: |
+          cd drupal
+          cp ../phpstan.neon .
+          cp ../phpstan-bootstrap.php .
+          # Update paths in phpstan.neon for Drupal installation
+          sed -i 's|/var/www/html/web|web|g' phpstan.neon
+          vendor/bin/phpstan analyze web/modules/contrib/db_wipe --memory-limit=256M
+
+  phpunit-tests:
+    name: PHPUnit Tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        drupal-core:
+          - '10.2.x'
+          - '10.3.x'
+          - '11.0.x'
+        php-version:
+          - '8.1'
+          - '8.2'
+          - '8.3'
+        exclude:
+          # Drupal 11 requires PHP 8.3
+          - drupal-core: '11.0.x'
+            php-version: '8.1'
+          - drupal-core: '11.0.x'
+            php-version: '8.2'
+
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: drupal
+          MYSQL_USER: drupal
+          MYSQL_PASSWORD: drupal
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, xml, ctype, iconv, intl, mysql, pdo_mysql, zip, gd
+          coverage: pcov
+          tools: composer:v2
+
+      - name: Setup Drupal project
+        run: |
+          composer create-project drupal/recommended-project:${{ matrix.drupal-core }} drupal --no-interaction
+          cd drupal
+          composer config minimum-stability dev
+          composer config prefer-stable true
+          composer config repositories.0 path "../"
+          composer require drupal/db_wipe:* --no-update
+          composer update --no-progress --no-interaction
+
+      - name: Install Drupal
+        run: |
+          cd drupal
+          vendor/bin/drush site:install standard --yes \
+            --db-url=mysql://drupal:drupal@127.0.0.1:3306/drupal \
+            --site-name="DB Wipe Test" \
+            --site-mail=admin@example.com \
+            --account-name=admin \
+            --account-mail=admin@example.com \
+            --account-pass=admin
+
+      - name: Enable DB Wipe modules
+        run: |
+          cd drupal
+          vendor/bin/drush pm:enable db_wipe db_wipe_entity db_wipe_ui --yes
+
+      - name: Run PHPUnit tests
+        run: |
+          cd drupal
+          vendor/bin/phpunit -c web/core/phpunit.xml.dist \
+            --bootstrap web/core/tests/bootstrap.php \
+            --testsuite unit \
+            --group db_wipe \
+            web/modules/contrib/db_wipe/tests/
+
+      - name: Run Kernel tests
+        run: |
+          cd drupal
+          vendor/bin/phpunit -c web/core/phpunit.xml.dist \
+            --bootstrap web/core/tests/bootstrap.php \
+            --testsuite kernel \
+            --group db_wipe \
+            web/modules/contrib/db_wipe/tests/
+
+  security-check:
+    name: Security Check
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          coverage: none
+          tools: composer:v2
+
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest --no-dev
+
+      - name: Security check
+        run: composer audit
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [coding-standards, static-analysis, phpunit-tests, security-check]
+    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create release package
+        run: |
+          # Remove development files
+          rm -rf .github .git tests phpstan.neon phpstan-bootstrap.php phpcs.xml.dist
+          rm -rf .gitlab-ci.yml Makefile
+          # Create archive
+          tar -czf db_wipe.tar.gz *
+          zip -r db_wipe.zip * -x "*.git*"
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            db_wipe.tar.gz
+            db_wipe.zip
+          generate_release_notes: true

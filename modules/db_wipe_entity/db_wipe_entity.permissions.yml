@@ -1,0 +1,15 @@
+administer entity wipe:
+  title: 'Administer entity wipe'
+  description: 'Configure entity wipe settings and protection rules.'
+  restrict access: true
+
+use entity wipe:
+  title: 'Use entity wipe'
+  description: 'Delete entities using the Entity API method.'
+  restrict access: true
+
+use sql wipe mode:
+  title: 'Use SQL direct wipe mode'
+  description: 'Delete entities using direct SQL queries (bypasses all hooks/events).'
+  restrict access: true
+  warning: 'WARNING: This permission allows bypassing all Entity API hooks and events. Grant with extreme caution.'

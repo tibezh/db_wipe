@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ruleset name="db_wipe">
+  <description>PHP CodeSniffer configuration for DB Wipe module.</description>
+
+  <!-- Check all PHP files in the current directory and subdirectories -->
+  <file>.</file>
+  <arg name="extensions" value="php,module,inc,install,test,profile,theme,info,yml"/>
+
+  <!-- Exclude patterns -->
+  <exclude-pattern>*/vendor/*</exclude-pattern>
+  <exclude-pattern>*/node_modules/*</exclude-pattern>
+  <exclude-pattern>*/tests/fixtures/*</exclude-pattern>
+  <exclude-pattern>*.min.js</exclude-pattern>
+  <exclude-pattern>*.min.css</exclude-pattern>
+
+  <!-- Show progress -->
+  <arg value="p"/>
+
+  <!-- Show sniff codes in all reports -->
+  <arg value="s"/>
+
+  <!-- Use colors in output -->
+  <arg name="colors"/>
+
+  <!-- Check 8 files in parallel -->
+  <arg name="parallel" value="8"/>
+
+  <!-- Drupal and DrupalPractice coding standards -->
+  <rule ref="Drupal">
+    <!-- Exclude some rules that might be too strict for contrib -->
+    <exclude name="Drupal.Commenting.InlineComment.InvalidEndChar"/>
+    <exclude name="Drupal.Commenting.DocComment.MissingShort"/>
+  </rule>
+
+  <rule ref="DrupalPractice">
+    <!-- Exclude rules that conflict with dependency injection -->
+    <exclude name="DrupalPractice.Objects.GlobalDrupal"/>
+    <exclude name="DrupalPractice.Objects.GlobalClass"/>
+  </rule>
+
+  <!-- Set minimum supported PHP version -->
+  <config name="testVersion" value="8.1-"/>
+
+  <!-- PHPCompatibility rules -->
+  <rule ref="PHPCompatibility"/>
+
+  <!-- Limit line length warnings -->
+  <rule ref="Generic.Files.LineLength">
+    <properties>
+      <property name="lineLimit" value="120"/>
+      <property name="absoluteLineLimit" value="150"/>
+    </properties>
+  </rule>
+
+  <!-- Allow short array syntax -->
+  <rule ref="Generic.Arrays.DisallowLongArraySyntax.Found">
+    <severity>0</severity>
+  </rule>
+</ruleset>

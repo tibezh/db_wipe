@@ -1,0 +1,4 @@
+administer entity wipe:
+  title: 'Administer Entity Wipe'
+  description: 'DANGEROUS: Allows permanent deletion of entities from the database. This permission should only be granted to trusted administrators.'
+  restrict access: TRUE

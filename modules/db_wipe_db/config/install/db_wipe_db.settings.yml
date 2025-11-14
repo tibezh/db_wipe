@@ -1,0 +1,43 @@
+tables:
+  mode: 'whitelist'
+  safe_tables:
+    - watchdog
+    - sessions
+    - flood
+    - queue
+    - batch
+    - semaphore
+    - advancedqueue
+    - ultimate_cron_log
+    - ultimate_cron_signal
+  safe_prefixes:
+    - cache_
+    - cachetags
+    - search_api_db_
+    - webform_submission
+  custom_tables: []
+  excluded_tables: []
+  protected_tables:
+    - users
+    - users_field_data
+    - user__roles
+    - role
+    - config
+    - key_value
+    - key_value_expire
+    - sequences
+    - router
+    - menu_tree
+safety:
+  require_confirmation: true
+  require_backup_confirmation: true
+  max_rows_without_warning: 10000
+  allow_system_tables: false
+logging:
+  enabled: true
+  log_level: 'notice'
+  log_row_counts: true
+performance:
+  use_transaction: true
+  batch_operations: true
+  disable_foreign_key_checks: false

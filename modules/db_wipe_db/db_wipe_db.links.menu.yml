@@ -1,0 +1,6 @@
+db_wipe_db.settings:
+  title: 'Database Table Truncation'
+  description: 'Configure which database tables can be truncated.'
+  parent: system.admin_config_development
+  route_name: db_wipe_db.settings
+  weight: 101

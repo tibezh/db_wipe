@@ -1,0 +1,4 @@
+services:
+  plugin.manager.wipe_plugin:
+    class: Drupal\db_wipe\WipePluginManager
+    parent: default_plugin_manager

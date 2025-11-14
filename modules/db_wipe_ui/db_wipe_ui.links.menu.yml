@@ -1,0 +1,6 @@
+db_wipe_ui.entity_wipe_form:
+  title: 'Entity Wipe'
+  description: 'Delete entities from the database'
+  parent: system.admin_config_development
+  route_name: db_wipe_ui.entity_wipe_form
+  weight: 100

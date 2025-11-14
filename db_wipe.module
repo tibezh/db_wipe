@@ -1,0 +1,96 @@
+<?php
+
+/**
+ * @file
+ * DB Wipe module.
+ */
+
+use Drupal\Core\Routing\RouteMatchInterface;
+
+/**
+ * Implements hook_help().
+ */
+function db_wipe_help($route_name, RouteMatchInterface $route_match) {
+  switch ($route_name) {
+    case 'help.page.db_wipe':
+      $output = '<h3>' . t('About') . '</h3>';
+      $output .= '<p>' . t('The DB Wipe module provides a flexible, plugin-based system for deleting data from your Drupal database. This is the core module that provides the plugin architecture - you must enable submodules to perform actual deletions.') . '</p>';
+      $output .= '<p class="messages messages--warning">' . t('<strong>⚠️ WARNING:</strong> This module permanently deletes data. Always backup your database before use.') . '</p>';
+
+      $output .= '<h3>' . t('Architecture') . '</h3>';
+      $output .= '<p>' . t('DB Wipe uses a plugin system that allows different strategies for data deletion:') . '</p>';
+      $output .= '<dl>';
+      $output .= '<dt><strong>db_wipe (Core)</strong></dt>';
+      $output .= '<dd>' . t('Provides the plugin system and common interfaces. Does not delete anything by itself.') . '</dd>';
+      $output .= '<dt><strong>db_wipe_entity</strong></dt>';
+      $output .= '<dd>' . t('Deletes entities using Drupal\'s Entity API. Safe, fires all hooks/events, but slower. Recommended for production content.') . '</dd>';
+      $output .= '<dt><strong>db_wipe_db</strong></dt>';
+      $output .= '<dd>' . t('Truncates database tables directly using SQL. Very fast but bypasses Entity API. Use for logs, cache, and temporary data.') . '</dd>';
+      $output .= '<dt><strong>db_wipe_ui</strong></dt>';
+      $output .= '<dd>' . t('Provides a web-based user interface for entity deletion operations.') . '</dd>';
+      $output .= '</dl>';
+
+      $output .= '<h3>' . t('Getting Started') . '</h3>';
+      $output .= '<ol>';
+      $output .= '<li>' . t('Enable db_wipe (core module) - required for all functionality') . '</li>';
+      $output .= '<li>' . t('Enable db_wipe_entity for entity deletion OR db_wipe_db for table truncation (or both)') . '</li>';
+      $output .= '<li>' . t('Optional: Enable db_wipe_ui for web interface') . '</li>';
+      $output .= '<li>' . t('Use Drush commands (see below) or the UI to perform deletions') . '</li>';
+      $output .= '</ol>';
+
+      $output .= '<h3>' . t('Available Submodules') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('For detailed entity deletion help, see: <a href=":url">DB Wipe Entity</a>', [':url' => '/admin/help/db_wipe_entity']) . '</li>';
+      $output .= '<li>' . t('For table truncation help, see: <a href=":url">DB Wipe Database</a>', [':url' => '/admin/help/db_wipe_db']) . '</li>';
+      $output .= '<li>' . t('For UI documentation, see: <a href=":url">DB Wipe UI</a>', [':url' => '/admin/help/db_wipe_ui']) . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h3>' . t('Creating Custom Plugins') . '</h3>';
+      $output .= '<p>' . t('Developers can create custom wipe strategies by implementing a WipePlugin:') . '</p>';
+      $output .= '<ol>';
+      $output .= '<li>' . t('Create a plugin class in your module\'s <code>Plugin/Wipe</code> directory') . '</li>';
+      $output .= '<li>' . t('Extend <code>Drupal\db_wipe\Plugin\WipePluginBase</code>') . '</li>';
+      $output .= '<li>' . t('Add the <code>@WipePlugin</code> annotation with id, label, and description') . '</li>';
+      $output .= '<li>' . t('Implement: <code>supports()</code>, <code>execute()</code>, and <code>preview()</code> methods') . '</li>';
+      $output .= '</ol>';
+      $output .= '<p>' . t('See the README.md file for complete plugin and event subscriber examples.') . '</p>';
+
+      $output .= '<h3>' . t('Event System') . '</h3>';
+      $output .= '<p>' . t('DB Wipe dispatches events that allow other modules to react to deletion operations. Each submodule defines its own events:') . '</p>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('<strong>db_wipe_entity</strong> events: BEFORE_WIPE, AFTER_WIPE, BATCH_PROCESS') . '</li>';
+      $output .= '<li>' . t('<strong>db_wipe_db</strong> events: BEFORE_TRUNCATE, AFTER_TRUNCATE') . '</li>';
+      $output .= '</ul>';
+      $output .= '<p>' . t('Subscribe to these events to add logging, prevent operations, or perform cleanup tasks.') . '</p>';
+
+      $output .= '<h3>' . t('Safety Features') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('Dry-run mode to preview operations without making changes') . '</li>';
+      $output .= '<li>' . t('Confirmation prompts before destructive operations') . '</li>';
+      $output .= '<li>' . t('Event system allows preventing operations') . '</li>';
+      $output .= '<li>' . t('Batch processing for large operations') . '</li>';
+      $output .= '<li>' . t('Automatic protection of critical entities (e.g., User ID 1)') . '</li>';
+      $output .= '<li>' . t('Whitelist-based table truncation (db_wipe_db only)') . '</li>';
+      $output .= '</ul>';
+
+      $output .= '<h3>' . t('Best Practices') . '</h3>';
+      $output .= '<ol>';
+      $output .= '<li><strong>' . t('Always backup your database first') . '</strong></li>';
+      $output .= '<li><strong>' . t('Use --dry-run to preview operations') . '</strong></li>';
+      $output .= '<li>' . t('Test on development/staging environments before production') . '</li>';
+      $output .= '<li>' . t('Choose the right submodule: db_wipe_entity for content, db_wipe_db for logs/cache') . '</li>';
+      $output .= '<li>' . t('Never use --yes flag without reviewing what will be deleted') . '</li>';
+      $output .= '<li>' . t('Subscribe to events for audit trails and logging') . '</li>';
+      $output .= '<li>' . t('Monitor logs after deletion operations') . '</li>';
+      $output .= '</ol>';
+
+      $output .= '<h3>' . t('Resources') . '</h3>';
+      $output .= '<ul>';
+      $output .= '<li>' . t('README.md - Complete documentation with code examples') . '</li>';
+      $output .= '<li>' . t('tests/modules/db_wipe_test - Example event subscriber implementation') . '</li>';
+      $output .= '<li>' . t('Plugin discovery: <code>drush pml --type=db_wipe</code>') . '</li>';
+      $output .= '</ul>';
+
+      return $output;
+  }
+}

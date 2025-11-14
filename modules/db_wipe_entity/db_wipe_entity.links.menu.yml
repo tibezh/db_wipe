@@ -1,0 +1,6 @@
+db_wipe_entity.protection_settings:
+  title: 'Entity Protection Settings'
+  description: 'Configure entity protection rules for database wipe operations.'
+  parent: system.admin_config_development
+  route_name: db_wipe_entity.protection_settings
+  weight: 100

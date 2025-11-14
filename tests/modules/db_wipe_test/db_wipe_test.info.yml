@@ -1,0 +1,9 @@
+name: 'DB Wipe Test'
+type: module
+description: 'Testing module for DB Wipe events'
+package: Testing
+core_version_requirement: ^10 || ^11
+dependencies:
+  - db_wipe
+  - db_wipe_entity
+hidden: true

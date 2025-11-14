@@ -1,0 +1,7 @@
+db_wipe_entity.protection_settings:
+  path: '/admin/config/development/db-wipe-entity/protection'
+  defaults:
+    _form: '\Drupal\db_wipe_entity\Form\EntityProtectionSettingsForm'
+    _title: 'Entity Protection Settings'
+  requirements:
+    _permission: 'administer site configuration'

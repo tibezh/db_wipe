@@ -1,0 +1,7 @@
+db_wipe_db.settings:
+  path: '/admin/config/development/db-wipe-db/settings'
+  defaults:
+    _form: '\Drupal\db_wipe_db\Form\DatabaseWipeSettingsForm'
+    _title: 'Database Table Truncation Settings'
+  requirements:
+    _permission: 'administer database wipe'
